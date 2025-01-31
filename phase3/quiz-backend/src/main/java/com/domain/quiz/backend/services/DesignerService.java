@@ -1,6 +1,7 @@
-
 package com.domain.quiz.backend.services;
 
+import com.domain.quiz.backend.dto.CategoryDTO;
+import com.domain.quiz.backend.dto.QuestionDTO;
 import com.domain.quiz.backend.models.Category;
 import com.domain.quiz.backend.models.Question;
 import com.domain.quiz.backend.models.User;
@@ -9,70 +10,129 @@ import com.domain.quiz.backend.repositories.QuestionRepository;
 import com.domain.quiz.backend.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import java.util.List;
-import java.util.Optional;
+
 
 @Service
 public class DesignerService {
 
     @Autowired
-    private QuestionRepository questionRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
-    private CategoryRepository categoryRepository;
+    private QuestionRepository questionRepository;
 
     @Autowired
     private UserRepository userRepository;
 
-    public Question createQuestion(String text, List<String> options, String correctAnswer, String difficulty, String categoryId, String createdById) {
-        Optional<Category> categoryOpt = categoryRepository.findById(categoryId);
-        Optional<User> userOpt = userRepository.findById(createdById);
+    // Create a new category
+    public CategoryDTO createCategory(String categoryName) {
+        if (categoryRepository.existsByName(categoryName)) {
+            throw new RuntimeException("Category already exists");
+        }
+        Category category = new Category(categoryName);
+        Category savedCategory = categoryRepository.save(category);
+        return new CategoryDTO(savedCategory.getId(), savedCategory.getName());
+    }
 
-        if (!categoryOpt.isPresent() || !userOpt.isPresent()) {
-            return null;
+    // Retrieve all categories
+    public List<CategoryDTO> getAllCategories() {
+        List<Category> categories = categoryRepository.findAll();
+        return categories.stream()
+                .map(cat -> new CategoryDTO(cat.getId(), cat.getName()))
+                .collect(Collectors.toList());
+    }
+
+    // Create a new question
+    public QuestionDTO createQuestion(QuestionDTO questionDTO, String designerUsername) {
+        // Validate category
+        Category category = categoryRepository.findById(questionDTO.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        // Validate designer
+        User designer = userRepository.findByUsername(designerUsername)
+                .orElseThrow(() -> new RuntimeException("Designer not found"));
+
+        // Create and save question
+        Question question = new Question();
+        question.setText(questionDTO.getText());
+        question.setOptions(questionDTO.getOptions());
+        question.setCorrectAnswer(questionDTO.getCorrectAnswer());
+        question.setDifficulty(questionDTO.getDifficulty());
+        question.setCategory(category);
+        question.setDesigner(designer);
+
+        Question savedQuestion = questionRepository.save(question);
+
+        // Map to DTO
+        return mapToDTO(savedQuestion);
+    }
+
+    // Retrieve all questions
+    public List<QuestionDTO> getAllQuestions() {
+        List<Question> questions = questionRepository.findAll();
+
+        return questions.stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // Update a question
+    public QuestionDTO updateQuestion(String questionId, com.domain.quiz.backend.controllers.DesignerController.CreateQuestionRequest request, String designerUsername) {
+        Question existingQuestion = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Question not found"));
+
+        // Verify that the current user is the designer of the question
+        if (!existingQuestion.getDesigner().getUsername().equals(designerUsername)) {
+            throw new RuntimeException("You are not authorized to update this question.");
         }
 
-        Category category = categoryOpt.get();
-        User createdBy = userOpt.get();
+        // Update fields
+        existingQuestion.setText(request.getText());
+        existingQuestion.setOptions(request.getOptions());
+        existingQuestion.setCorrectAnswer(request.getCorrectAnswer());
+        existingQuestion.setDifficulty(request.getDifficulty());
 
-        Question question = new Question(text, options, correctAnswer, difficulty, category, createdBy, null);
-        return questionRepository.save(question);
-    }
-
-    public List<Question> getQuestions() {
-        return questionRepository.findAll();
-    }
-
-    public Category createCategory(String name, String createdById) {
-        Optional<User> userOpt = userRepository.findById(createdById);
-        if (!userOpt.isPresent()) {
-            return null;
-        }
-        User createdBy = userOpt.get();
-        Category category = new Category(name, createdBy);
-        return categoryRepository.save(category);
-    }
-
-    public List<Category> getCategories() {
-        return categoryRepository.findAll();
-    }
-
-    public Question updateQuestion(String id, String text, List<String> options, String correctAnswer, String difficulty, String categoryId) {
-        Optional<Question> questionOpt = questionRepository.findById(id);
-        if (!questionOpt.isPresent()) {
-            return null;
+        if (!existingQuestion.getCategory().getId().equals(request.getCategoryId())) {
+            Category newCategory = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            existingQuestion.setCategory(newCategory);
         }
 
-        Question question = questionOpt.get();
-        question.setText(text);
-        question.setOptions(options);
-        question.setCorrectAnswer(correctAnswer);
-        question.setDifficulty(difficulty);
+        // Save updated question
+        Question updatedQuestion = questionRepository.save(existingQuestion);
 
-        Optional<Category> categoryOpt = categoryRepository.findById(categoryId);
-        categoryOpt.ifPresent(question::setCategory);
+        // Map to DTO
+        return mapToDTO(updatedQuestion);
+    }
 
-        return questionRepository.save(question);
+    // Delete a question
+    public void deleteQuestion(String questionId, String designerUsername) {
+        Question existingQuestion = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Question not found"));
+
+        // Verify that the current user is the designer of the question
+        if (!existingQuestion.getDesigner().getUsername().equals(designerUsername)) {
+            throw new RuntimeException("You are not authorized to delete this question.");
+        }
+
+        questionRepository.delete(existingQuestion);
+    }
+
+    // Helper method to map Question to QuestionDTO
+    private QuestionDTO mapToDTO(Question question) {
+        return new QuestionDTO(
+                question.getId(),
+                question.getText(),
+                question.getOptions(),
+                question.getCorrectAnswer(),
+                question.getDifficulty(),
+                question.getCategory().getId(),
+                question.getCategory().getName(),
+                question.getDesigner().getUsername()
+        );
     }
 }
+

@@ -1,56 +1,33 @@
-
 package com.domain.quiz.backend.models;
-
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.DBRef;
-
 import java.util.List;
 
-@Document(collection = "questions") // Marks this as a MongoDB document
-public class Question {
 
-    @Id  // MongoDB primary key
+
+@Document(collection = "questions")
+public class Question {
+    @Id
     private String id;
 
-    private String text; // Question text
+    private String text;
+    private List<String> options;
+    private String correctAnswer;
+    private String difficulty; // e.g., "Easy", "Medium", "Hard"
 
-    private List<String> options; // Array of options
-
-    private String correctAnswer; // Correct answer
-
-    private String difficulty; // Difficulty level
-
-    @DBRef // Reference to Category
+    @DBRef
     private Category category;
 
-    @DBRef // Reference to User (Designer)
-    private User createdBy;
-
-    @DBRef // References to related questions
-    private List<Question> relatedQuestions;
+    @DBRef
+    private User designer;
 
     // Constructors
     public Question() {}
 
-    public Question(String text, List<String> options, String correctAnswer, String difficulty,
-                    Category category, User createdBy, List<Question> relatedQuestions) {
-        this.text = text;
-        this.options = options;
-        this.correctAnswer = correctAnswer;
-        this.difficulty = difficulty;
-        this.category = category;
-        this.createdBy = createdBy;
-        this.relatedQuestions = relatedQuestions;
-    }
-
     // Getters and Setters
     public String getId() {
         return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getText() {
@@ -93,19 +70,11 @@ public class Question {
         this.category = category;
     }
 
-    public User getCreatedBy() {
-        return createdBy;
+    public User getDesigner() {
+        return designer;
     }
 
-    public void setCreatedBy(User createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public List<Question> getRelatedQuestions() {
-        return relatedQuestions;
-    }
-
-    public void setRelatedQuestions(List<Question> relatedQuestions) {
-        this.relatedQuestions = relatedQuestions;
+    public void setDesigner(User designer) {
+        this.designer = designer;
     }
 }

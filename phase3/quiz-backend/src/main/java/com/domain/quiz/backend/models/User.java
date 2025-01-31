@@ -1,50 +1,37 @@
-
 package com.domain.quiz.backend.models;
 
+import java.util.Set;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.DBRef;
+import java.util.Set;
 
-import java.util.List;
 
-@Document(collection = "users") // Marks this as a MongoDB document
+
+@Document(collection = "users")
 public class User {
-
-    @Id // MongoDB primary key
+    @Id
     private String id;
 
     private String username;
     private String password;
+    private String role; // "DESIGNER" or "PLAYER"
 
-    private String role; // "designer" or "player"
-
-    @DBRef // Users following this user
-    private List<User> followers;
-
-    @DBRef // Users this user is following
-    private List<User> following;
-
-    private int score; // Player score for leaderboard
+    // Followers and Following represented as sets of User IDs (Strings)
+    private Set<String> followers; // Set of User IDs
+    private Set<String> following; // Set of User IDs
 
     // Constructors
     public User() {}
 
-    public User(String username, String password, String role, List<User> followers, List<User> following, int score) {
+    public User(String username, String password, String role) {
         this.username = username;
         this.password = password;
         this.role = role;
-        this.followers = followers;
-        this.following = following;
-        this.score = score;
     }
 
     // Getters and Setters
     public String getId() {
         return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getUsername() {
@@ -71,27 +58,19 @@ public class User {
         this.role = role;
     }
 
-    public List<User> getFollowers() {
+    public Set<String> getFollowers() {
         return followers;
     }
 
-    public void setFollowers(List<User> followers) {
+    public void setFollowers(Set<String> followers) {
         this.followers = followers;
     }
 
-    public List<User> getFollowing() {
+    public Set<String> getFollowing() {
         return following;
     }
 
-    public void setFollowing(List<User> following) {
+    public void setFollowing(Set<String> following) {
         this.following = following;
-    }
-
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
     }
 }
