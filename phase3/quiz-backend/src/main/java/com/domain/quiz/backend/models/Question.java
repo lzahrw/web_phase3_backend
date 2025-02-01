@@ -1,7 +1,4 @@
-//package com.domain.quiz.backend.models;
-//
-//public class Question {
-//}
+
 package com.domain.quiz.backend.models;
 
 import org.springframework.data.annotation.Id;
