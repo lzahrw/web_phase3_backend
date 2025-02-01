@@ -7,21 +7,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
-
 @Service
 public class CategoryService {
 
     @Autowired
     private CategoryRepository categoryRepository;
 
-    public Category createCategory(Category category) {
-        if (categoryRepository.existsByName(category.getName())) {
-            throw new RuntimeException("Category already exists");
-        }
-        return categoryRepository.save(category);
+    /**
+     * Fetches all categories created by the specified designer.
+     */
+    public List<Category> getCategoriesByDesigner(String designerId) {
+        return categoryRepository.findByDesignerId(designerId);
     }
 
-    public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+    /**
+     * Creates a new category.
+     */
+    public Category createCategory(Category category) {
+        return categoryRepository.save(category);
     }
 }

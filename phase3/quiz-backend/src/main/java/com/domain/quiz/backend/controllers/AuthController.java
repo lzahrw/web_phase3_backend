@@ -2,122 +2,100 @@ package com.domain.quiz.backend.controllers;
 
 
 import com.domain.quiz.backend.models.User;
-import com.domain.quiz.backend.security.JwtUtils;
 import com.domain.quiz.backend.services.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
-import java.util.*;
+// src/main/java/com/domain/quiz/backend/controllers/AuthController.java
+
+
+import java.util.Map;
+
+
+import com.domain.quiz.backend.config.JwtTokenProvider;
+import com.domain.quiz.backend.models.Role;
+import com.domain.quiz.backend.models.User;
+import com.domain.quiz.backend.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
+    private UserRepository userRepository;
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private JwtTokenProvider tokenProvider;
 
-    @Autowired
-    private AuthService authService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    // DTOs for request and response
-    public static class RegisterRequest {
-        @NotBlank(message = "Username cannot be empty")
-        private String username;
-
-        @NotBlank(message = "Password cannot be empty")
-        private String password;
-
-        @NotBlank(message = "Role cannot be empty")
-        private String role;
-
-        // Getters and Setters
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-
-        public String getRole() {
-            return role;
-        }
-
-        public void setRole(String role) {
-            this.role = role;
-        }
-    }
-
-    public static class LoginRequest {
-        @NotBlank(message = "Username cannot be empty")
-        private String username;
-
-        @NotBlank(message = "Password cannot be empty")
-        private String password;
-
-        // Getters and Setters
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-        if(authService.existsByUsername(registerRequest.getUsername())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "Username is already taken"));
-        }
-        User user = new User(registerRequest.getUsername(), passwordEncoder.encode(registerRequest.getPassword()), registerRequest.getRole().toUpperCase());
-        User savedUser = authService.registerUser(user);
-        return ResponseEntity.ok(Map.of("user", savedUser));
-    }
-
+    // Login API: /api/auth/login
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),
-                            loginRequest.getPassword()
-                    )
-            );
-            String jwt = jwtUtils.generateToken(authentication.getName());
-            return ResponseEntity.ok(Map.of("token", jwt));
-        } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(401).body(Map.of("message", "Invalid username or password"));
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+        String username = loginRequest.get("username");
+        String password = loginRequest.get("password");
+
+        Optional<User> userOptional = userRepository.findByUsername(username);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            // In production use hashed passwords!
+            if (user.getPassword().equals(password)) {
+                String token = tokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole().name());
+                Map<String, String> response = new HashMap<>();
+                response.put("token", token);
+                response.put("userRole", user.getRole().name().toLowerCase());
+                response.put("userId", user.getId());
+                return ResponseEntity.ok(response);
+            }
         }
+        return ResponseEntity.status(401).body("Invalid credentials");
+    }
+
+    // Designer Registration: /api/auth/register/designer
+    @PostMapping("/register/designer")
+    public ResponseEntity<?> registerDesigner(@RequestBody Map<String, Object> registrationRequest) {
+        String username = (String) registrationRequest.get("username");
+        String password = (String) registrationRequest.get("password");
+        String email = (String) registrationRequest.get("email");
+        Map<String, Object> details = (Map<String, Object>) registrationRequest.get("details");
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
+
+        User designer = new User(username, password, email, Role.DESIGNER, details);
+        userRepository.save(designer);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Designer registered successfully");
+        response.put("userId", designer.getId());
+        return ResponseEntity.ok(response);
+    }
+
+    // Player Registration: /api/auth/register/player
+    @PostMapping("/register/player")
+    public ResponseEntity<?> registerPlayer(@RequestBody Map<String, Object> registrationRequest) {
+        String username = (String) registrationRequest.get("username");
+        String password = (String) registrationRequest.get("password");
+        String email = (String) registrationRequest.get("email");
+        Map<String, Object> details = (Map<String, Object>) registrationRequest.get("details");
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
+
+        User player = new User(username, password, email, Role.PLAYER, details);
+        userRepository.save(player);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Player registered successfully");
+        response.put("userId", player.getId());
+        return ResponseEntity.ok(response);
     }
 }
 

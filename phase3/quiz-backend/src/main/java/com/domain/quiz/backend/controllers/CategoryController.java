@@ -14,52 +14,43 @@ import java.util.*;
 
 
 
+// src/main/java/com/domain/quiz/backend/controllers/CategoryController.java
+
+import com.domain.quiz.backend.models.Category;
+import com.domain.quiz.backend.services.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+import com.domain.quiz.backend.models.Category;
+import com.domain.quiz.backend.repositories.CategoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
 public class CategoryController {
 
     @Autowired
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
-    // DTO for creating a new category
-    public static class CreateCategoryRequest {
-        @NotBlank(message = "Category name cannot be empty")
-        private String name;
-
-        public CreateCategoryRequest() {}
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
+    // Fetch Categories API for a given designer
+    // GET /api/categories/designer/{designerId}
+    @GetMapping("/designer/{designerId}")
+    public ResponseEntity<?> getCategoriesByDesigner(@PathVariable String designerId) {
+        List<Category> categories = categoryRepository.findByDesignerId(designerId);
+        return ResponseEntity.ok(categories);
     }
 
-    // POST /api/categories
-    @PostMapping
-    @PreAuthorize("hasRole('DESIGNER')")
-    public ResponseEntity<?> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
-        try {
-            Category created = categoryService.createCategory(new Category(request.getName()));
-            return ResponseEntity.ok(Map.of("category", created));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    // GET /api/categories
-    @GetMapping
-    public ResponseEntity<?> getAllCategories() {
-        try {
-            List<Category> categories = categoryService.getAllCategories();
-            return ResponseEntity.ok(Map.of("categories", categories));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to load categories."));
-        }
+    // Optionally, you can add an endpoint to create a new category:
+    // POST /api/categories/create
+    @PostMapping("/create")
+    public ResponseEntity<?> createCategory(@RequestBody Category category) {
+        categoryRepository.save(category);
+        return ResponseEntity.ok(category);
     }
 }
-
 
