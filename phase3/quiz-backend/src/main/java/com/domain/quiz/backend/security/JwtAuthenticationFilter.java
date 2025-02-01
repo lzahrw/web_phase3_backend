@@ -17,16 +17,19 @@ import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
+import org.springframework.context.annotation.Lazy;
+
+import org.springframework.stereotype.Component;
 
 
-
-
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtUtils jwtUtils;
 
     @Autowired
+    @Lazy  // Marking as lazy can help break circular dependencies
     private CustomUserDetailsService customUserDetailsService;
 
     @Override
@@ -39,12 +42,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = jwtUtils.getUsernameFromJWT(jwt);
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
+                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception ex) {
-            // Optionally log the exception
+            // Optionally log the exception here
             System.err.println("Could not set user authentication in security context: " + ex.getMessage());
         }
         filterChain.doFilter(request, response);
@@ -58,5 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
+
 
 

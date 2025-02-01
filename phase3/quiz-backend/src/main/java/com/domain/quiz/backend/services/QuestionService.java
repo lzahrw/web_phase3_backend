@@ -8,6 +8,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
+
+
 @Service
 public class QuestionService {
 
@@ -15,13 +17,14 @@ public class QuestionService {
     private QuestionRepository questionRepository;
 
     public List<Question> getRandomQuestions(int limit) {
-        return questionRepository.findRandomQuestions(PageRequest.of(0, limit));
+        return questionRepository.findRandomQuestions(limit);
     }
 
     public List<Question> getQuestionsByCategory(String categoryId) {
-        // Implement as needed, possibly similar to PlayerService
+        // Implement as needed, possibly similar to PlayerService.
         return null;
     }
 
-    // Additional methods for creating, updating questions
+    // Additional methods for creating, updating questions can be added here.
 }
+

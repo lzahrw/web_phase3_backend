@@ -20,9 +20,9 @@ public class JwtUtils {
     private int jwtExpirationMs;
 
     private Key getSigningKey() {
-        // It's recommended to use a secure key with sufficient length
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
+
 
     public String generateToken(String username) {
         return Jwts.builder()
@@ -32,6 +32,7 @@ public class JwtUtils {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
+
 
     public String getUsernameFromJWT(String token) {
         return Jwts.parserBuilder()
@@ -44,25 +45,18 @@ public class JwtUtils {
 
     public boolean validateToken(String authToken) {
         try {
-            Jwts.parserBuilder()
+            Jws<Claims> claims = Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(authToken);
+            // Optionally log the claims or header to debug
+            System.out.println("Token claims: " + claims.getBody());
             return true;
-        } catch (SecurityException | MalformedJwtException ex) {
-            // Invalid JWT signature
-            System.err.println("Invalid JWT signature: " + ex.getMessage());
-        } catch (ExpiredJwtException ex) {
-            // Expired JWT token
-            System.err.println("Expired JWT token: " + ex.getMessage());
-        } catch (UnsupportedJwtException ex) {
-            // Unsupported JWT token
-            System.err.println("Unsupported JWT token: " + ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            // JWT claims string is empty
-            System.err.println("JWT claims string is empty: " + ex.getMessage());
+        } catch (Exception ex) {
+            System.err.println("JWT signature does not match: " + ex.getMessage());
+            return false;
         }
-        return false;
     }
+
 }
 

@@ -8,9 +8,10 @@ import java.util.List;
 
 
 
+
+
 public interface QuestionRepository extends MongoRepository<Question, String>, QuestionRepositoryCustom {
     List<Question> findByCategoryId(String categoryId);
-
-    List<Question> findByDesignerUsername(String designerUsername);
 }
+
 
